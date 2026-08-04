@@ -15,3 +15,10 @@ services:
     hostname: mongo2
     command: >
       mongod --replSet rs0 --bind_ip_all
+
+  mongo3:
+    image: mongo:8
+    container_name: mongo3
+    hostname: mongo3
+    command: >
+      mongod --replSet rs0 --bind_ip_all
