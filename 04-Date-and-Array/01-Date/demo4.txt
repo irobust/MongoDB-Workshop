@@ -1,0 +1,84 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Days since release (NOW vs released)
+// Task: How many days old is each movie?
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      released: 1,
+      daysSinceRelease: {
+        $dateDiff: { startDate: "$released", endDate: "$$NOW", unit: "day" }
+      }
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Last updated vs released (convert string -> date)
+// Task: Days between initial release and last update
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" }, lastupdated: { $exists: true } } },
+  { $addFields: { lastUpdatedDate: { $toDate: "$lastupdated" } } }, // handles string values
+  { $match: { lastUpdatedDate: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      released: 1,
+      lastUpdatedDate: 1,
+      daysBetween: {
+        $dateDiff: { startDate: "$released", endDate: "$lastUpdatedDate", unit: "day" }
+      }
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Using $subtract (ms) and converting to days
+// Task: Same as above, but with $subtract + unit conversion
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" }, lastupdated: { $exists: true } } },
+  { $addFields: { lastUpdatedDate: { $toDate: "$lastupdated" } } },
+  { $match: { lastUpdatedDate: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      released: 1,
+      lastUpdatedDate: 1,
+      daysBetween: {
+        $divide: [
+          { $subtract: [ "$lastUpdatedDate", "$released" ] },
+          1000 * 60 * 60 * 24 // ms -> days
+        ]
+      }
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 4: How many months since last update?
+// Task: Age of the last update in months
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { lastupdated: { $exists: true } } },
+  { $addFields: { lastUpdatedDate: { $toDate: "$lastupdated" } } },
+  { $match: { lastUpdatedDate: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      lastUpdatedDate: 1,
+      monthsSinceUpdate: {
+        $dateDiff: { startDate: "$lastUpdatedDate", endDate: "$$NOW", unit: "month" }
+      }
+  }},
+  { $limit: 5 }
+])

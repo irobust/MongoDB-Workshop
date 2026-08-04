@@ -1,0 +1,232 @@
+// # Demo: Filtering by Category or Date Range - Compass
+
+
+// Step 1: Action movies after 2007, top 5 by most recent year
+Filter:     { "genres": "Action", "year": { "$gte": 2007 } }
+Project:    { "title": 1, "year": 1, "genres": 1, _id: 0 }
+Sort:       { "year": -1, "title": 1 }
+Limit:      10
+Skip:       5
+
+// # Demo: Filtering by Category or Date Range - Shell
+
+use sample_mflix
+
+// Step 1: Action movies after 2007, top 5 by most recent year
+db.movies.find(
+  { genres: "Action", year: { $gte: 2007 } },
+  { title: 1, year: 1, genres: 1, _id: 0 }
+).sort([("year", -1),("title", 1)]).skip(5).limit(10)
+
+// ////////////////////////////////////////////////////////////////////
+
+// # Demo: Finding Documents with Null or Missing Fields - Compass
+
+// Filter and preview documents where 'runtime' is a valid, non-null number
+Filter:     { "runtime": { "$exists": true, "$ne": null, "$type": "number" } }
+Project:    { title: 1, runtime: 1, _id: 0 }
+Limit:      10
+
+// Aggregate and count how frequently each field appears in the collection
+[
+  { "$project": { "fields": { "$objectToArray": "$$ROOT" } } },
+  { "$unwind": "$fields" },
+  { "$group": { "_id": "$fields.k", "count": { "$sum": 1 } } },
+  { "$sort": { "count": -1 } }
+]
+
+
+// # Demo: Finding Documents with Null or Missing Fields - Shell
+
+// Query documents where 'runtime' exists, is not null, and is a number
+use sample_mflix
+
+db.movies.find(
+  { "runtime": { "$exists": true, "$ne": null, "$type": "number" } },
+  { title: 1, runtime: 1, _id: 0 }
+).limit(10)
+
+// Aggregate all field names in the collection and count their usage frequency
+db.movies.aggregate([
+  { $project: { fields: { $objectToArray: "$$ROOT" } } },
+  { $unwind: "$fields" },
+  { $group: { _id: "$fields.k", count: { $sum: 1 } } },
+  { $sort: { count: -1 } }
+])
+
+{ rank: 1}
+
+// ////////////////////////////////////////////////////////////////////
+
+Give me the top 5 movies by imdb rating for each genre. Show me their title, genre, rating, and rank. Sort everything by genre name and rank.
+// # Demo: Retrieving Top-N Documents with Metrics - Compass
+
+[
+  // 1. Unwind genres array to make each genre its own row
+  {
+    $unwind: "$genres"
+  },
+  // 2. Exclude documents with missing or non-numeric ratings
+  {
+    $match: {
+      "imdb.rating": {
+        $ne: null,
+        $type: "number"
+      }
+    }
+  },
+  // 3. Use setWindowFields to create ranking within each genre
+  {
+    $setWindowFields: {
+      partitionBy: "$genres",
+      sortBy: {
+        "imdb.rating": -1
+      },
+      output: {
+        rank: {
+          $documentNumber: {}
+        }
+      }
+    }
+  },
+  // 4. Filter to only top 5 in each genre
+  {
+    $match: {
+      rank: {
+        $lte: 5
+      }
+    }
+  },
+  // 5. Project required fields and flatten
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      genre: "$genres",
+      rating: "$imdb.rating",
+      rank: 1
+    }
+  },
+  // 6. Final sort by genre and rank
+  {
+    $sort: {
+      genre: 1,
+      rank: 1
+    }
+  }
+]
+
+// # Demo: Retrieving Top-N Documents with Metrics - Shell
+use sample_mflix
+
+db.movies.aggregate([
+  // 1. Unwind genres array to make each genre its own row
+  {
+    $unwind: "$genres"
+  },
+  // 2. Exclude documents with missing or non-numeric ratings
+  {
+    $match: {
+      "imdb.rating": {
+        $ne: null,
+        $type: "number"
+      }
+    }
+  },
+  // 3. Use setWindowFields to create ranking within each genre
+  {
+    $setWindowFields: {
+      partitionBy: "$genres",
+      sortBy: {
+        "imdb.rating": -1
+      },
+      output: {
+        rank: {
+          $documentNumber: {}
+        }
+      }
+    }
+  },
+  // 4. Filter to only top 5 in each genre
+  {
+    $match: {
+      rank: {
+        $lte: 5
+      }
+    }
+  },
+  // 5. Project required fields and flatten
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      genre: "$genres",
+      rating: "$imdb.rating",
+      rank: 1
+    }
+  },
+  // 6. Final sort by genre and rank
+  {
+    $sort: {
+      genre: 1,
+      rank: 1
+    }
+  }
+])
+
+
+// # Demo: Retrieving Top-N Documents with Metrics - Python File
+
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb+srv://pinaldave:0n2NXzW5wgUgxRMW@cluster0.p60koew.mongodb.net/')
+result = client['sample_mflix']['movies'].aggregate([
+    {
+        '$unwind': '$genres'
+    }, {
+        '$match': {
+            'imdb.rating': {
+                '$ne': None, 
+                '$type': 'number'
+            }
+        }
+    }, {
+        '$setWindowFields': {
+            'partitionBy': '$genres', 
+            'sortBy': {
+                'imdb.rating': -1
+            }, 
+            'output': {
+                'rank': {
+                    '$documentNumber': {}
+                }
+            }
+        }
+    }, {
+        '$match': {
+            'rank': {
+                '$lte': 5
+            }
+        }
+    }, {
+        '$project': {
+            '_id': 0, 
+            'title': 1, 
+            'genre': '$genres', 
+            'rating': '$imdb.rating', 
+            'rank': 1
+        }
+    }, {
+        '$sort': {
+            'genre': 1, 
+            'rank': 1
+        }
+    }
+])
+
+# Print results
+for doc in result:
+    print(doc)

@@ -1,0 +1,61 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Filter by nested viewer rating, project a flat score
+// Task: Movies with tomatoes.viewer.rating >= 4, show title and viewerScore
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { "tomatoes.viewer.rating": { $gte: 4 } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      viewerScore: "$tomatoes.viewer.rating"
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Mix nested with top-level filters, keep export-friendly columns
+// Task: Popular movies (imdb.votes >= 100000) with solid critic score (>= 3)
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: {
+      "imdb.votes": { $gte: 100000 },
+      "tomatoes.critic.rating": { $gte: 3 }
+  }},
+  { $project: {
+      _id: 0,
+      title: 1,
+      votes: "$imdb.votes",
+      criticScore: "$tomatoes.critic.rating"
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Nested geo match + flatten
+// Task: Theaters in NY with valid Point coords, show flat lat/long
+// ---------------------------------------------
+
+db.theaters.aggregate([
+  { $match: {
+      "location.address.state": "NY",
+      "location.geo.type": "Point",
+      "location.geo.coordinates.0": { $type: "number" },
+      "location.geo.coordinates.1": { $type: "number" }
+  }},
+  { $project: {
+      _id: 0,
+      name: 1,
+      city:  "$location.address.city",
+      state: "$location.address.state",
+      longitude: { $arrayElemAt: ["$location.geo.coordinates", 0] },
+      latitude:  { $arrayElemAt: ["$location.geo.coordinates", 1] }
+  }},
+  { $limit: 5 }
+])

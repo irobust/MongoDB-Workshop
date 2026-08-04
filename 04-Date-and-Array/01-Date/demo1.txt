@@ -1,0 +1,51 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Movies released after 2010
+// Task: Find titles released in the modern era
+// ---------------------------------------------
+
+db.movies.find(
+  { released: { $gte: ISODate("2010-01-01") } },
+  { title: 1, released: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 2: Movies released on a specific day
+// Task: Match films released exactly on 2012-01-12
+// ---------------------------------------------
+
+db.movies.find(
+  { released: ISODate("2012-01-12T00:00:00.000Z") },
+  { title: 1, released: 1, _id: 0 }
+)
+
+
+// ---------------------------------------------
+// Example 3: Movies released in the last 10 years
+// Task: Use JavaScript Date object to calculate a rolling window
+// ---------------------------------------------
+
+db.movies.find(
+  { released: { $gte: new Date(Date.now() - 10*365*24*60*60*1000) } },
+  { title: 1, released: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 4: Common mistake with strings instead of ISODate
+// Task: Show what happens when using a plain string instead of ISODate
+// ---------------------------------------------
+
+db.movies.find(
+  { released: { $gte: "2010-01-01" } },
+  { title: 1, released: 1, _id: 0 }
+).limit(5)
+
+// Corrected query with ISODate
+db.movies.find(
+  { released: { $gte: ISODate("2010-01-01") } },
+  { title: 1, released: 1, _id: 0 }
+).limit(5)

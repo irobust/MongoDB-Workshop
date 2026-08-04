@@ -1,0 +1,57 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Project the release year of each movie
+// Task: Expose the release year alongside the title
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      title: 1,
+      released: 1,
+      releaseYear: { $year: "$released" }
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 2: Break a date into year, month, and day
+// Task: Add new fields year, month, and day for analysis
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      title: 1,
+      year: { $year: "$released" },
+      month: { $month: "$released" },
+      day: { $dayOfMonth: "$released" }
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 3: Count movies by release year
+// Task: Summarize number of movies released per year
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $group: { _id: { year: { $year: "$released" } }, count: { $sum: 1 } } },
+  { $project: { _id: 0, year: "$_id.year", count: 1 } },
+  { $sort: { year: -1 } },
+  { $limit: 10 }
+])
+
+// ---------------------------------------------
+// Example 4: Create year–month labels with $dateToString
+// Task: Show monthly movie counts formatted as YYYY-MM
+// ---------------------------------------------
+db.movies.aggregate([
+  { $group: {
+      _id: { ym: { $dateToString: { format: "%Y-%m", date: "$released" } } },
+      count: { $sum: 1 }
+  }},
+  { $project: { _id: 0, yearMonth: "$_id.ym", count: 1 } },
+  { $sort: { yearMonth: -1 } },
+  { $limit: 12 }
+])

@@ -1,0 +1,67 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Comments by month
+// Task: Count comments per calendar month and format YYYY-MM
+// ---------------------------------------------
+
+db.comments.aggregate([
+  // Optional time window to keep the chart tidy
+  { $match: { date: { $gte: ISODate("2014-01-01"), $lt: ISODate("2017-01-01") } } },
+
+  // Truncate to the first day of each month
+  { $group: {
+      _id: { $dateTrunc: { date: "$date", unit: "month" } },
+      comments: { $sum: 1 }
+  }},
+
+  // Clean columns for export
+  { $project: {
+      _id: 0,
+      month: { $dateToString: { date: "$_id", format: "%Y-%m" } },
+      comments: 1
+  }},
+
+  // Timeline order
+  { $sort: { month: 1 } },
+
+  { $limit: 36 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Daily trend with 7-day moving average
+// Task: Count comments per day, then add a 7-day moving average and cumulative total
+// ---------------------------------------------
+
+db.comments.aggregate([
+  { $match: { date: { $gte: ISODate("2015-01-01"), $lt: ISODate("2016-01-01") } } },
+
+  // Daily buckets
+  { $group: {
+      _id: { $dateTrunc: { date: "$date", unit: "day" } },
+      count: { $sum: 1 }
+  }},
+  { $project: { _id: 0, day: "$_id", count: 1 } },
+  { $sort: { day: 1 } },
+
+  // Window stats over ordered days
+  { $setWindowFields: {
+      sortBy: { day: 1 },
+      output: {
+        movingAvg7d: { $avg: "$count", window: { documents: [ -6, 0 ] } },
+        cumulative:  { $sum: "$count", window: { documents: [ "unbounded", 0 ] } }
+      }
+  }},
+
+  // Optional: format the day for CSV
+  { $project: {
+      day: { $dateToString: { date: "$day", format: "%Y-%m-%d" } },
+      count: 1,
+      movingAvg7d: { $round: ["$movingAvg7d", 2] },
+      cumulative: 1
+  }},
+
+  { $limit: 90 }
+])

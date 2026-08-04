@@ -1,0 +1,117 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 0: Quick peek at sample records
+// Task: Show title, year, and released for five docs
+// ---------------------------------------------
+db.movies.find(
+  {},
+  { _id: 0, title: 1, year: 1, released: 1 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 1: Shape census for released and year
+// Task: What types do released and year actually have
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      releasedType: { $type: "$released" },
+      yearType:     { $type: "$year" }
+  }},
+  { $group: {
+      _id: { releasedType: "$releasedType", yearType: "$yearType" },
+      count: { $sum: 1 }
+  }},
+  { $sort: { count: -1 } }
+])
+
+// ---------------------------------------------
+// Example 2: Count inconsistent patterns
+// Task: Totals for missing released, year as string, and year mismatch
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      releasedType: { $type: "$released" },
+      yearType:     { $type: "$year" },
+      yearNum:      { $convert: { input: "$year", to: "int", onError: null, onNull: null } },
+      releasedYear: {
+        $cond: [ { $eq: [ { $type: "$released" }, "date" ] }, { $year: "$released" }, null ]
+      }
+  }},
+  { $group: {
+      _id: null,
+      total:           { $sum: 1 },
+      missingReleased: { $sum: { $cond: [ { $eq: [ "$releasedType", "missing" ] }, 1, 0 ] } },
+      yearIsString:    { $sum: { $cond: [ { $eq: [ "$yearType", "string" ] }, 1, 0 ] } },
+      yearMismatch:    { $sum: { $cond: [
+                             { $and: [
+                               { $ne: [ "$yearNum", null ] },
+                               { $ne: [ "$releasedYear", null ] },
+                               { $ne: [ "$yearNum", "$releasedYear" ] }
+                             ]},
+                             1, 0
+                           ] } }
+  }}
+])
+
+// ---------------------------------------------
+// Example 3: Sample mismatched rows
+// Task: Print five titles where year != year(released)
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      title: 1,
+      yearNum: { $convert: { input: "$year", to: "int", onError: null, onNull: null } },
+      releasedDate: {
+        $cond: [ { $eq: [ { $type: "$released" }, "date" ] }, "$released", null ]
+      }
+  }},
+  { $addFields: {
+      releasedYear: {
+        $cond: [ { $ne: [ "$releasedDate", null ] }, { $year: "$releasedDate" }, null ]
+      }
+  }},
+  { $match: { $expr: {
+      $and: [
+        { $ne: [ "$yearNum", null ] },
+        { $ne: [ "$releasedYear", null ] },
+        { $ne: [ "$yearNum", "$releasedYear" ] }
+      ]
+  }}},
+  { $project: {
+      title: 1,
+      year: "$yearNum",
+      released: { $dateToString: { date: "$releasedDate", format: "%Y-%m-%d" } },
+      releasedYear: 1
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 4: Mismatch buckets by offset
+// Task: Group mismatches by yearOffset = yearNum - releasedYear
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      yearNum: { $convert: { input: "$year", to: "int", onError: null, onNull: null } },
+      releasedYear: {
+        $cond: [ { $eq: [ { $type: "$released" }, "date" ] }, { $year: "$released" }, null ]
+      }
+  }},
+  { $match: { $expr: {
+      $and: [
+        { $ne: [ "$yearNum", null ] },
+        { $ne: [ "$releasedYear", null ] },
+        { $ne: [ "$yearNum", "$releasedYear" ] }
+      ]
+  }}},
+  { $project: { yearOffset: { $subtract: [ "$yearNum", "$releasedYear" ] } } },
+  { $group: { _id: "$yearOffset", count: { $sum: 1 } } },
+  { $project: { _id: 0, yearOffset: "$_id", count: 1 } },
+  { $sort: { count: -1, yearOffset: 1 } },
+  { $limit: 20 }
+])

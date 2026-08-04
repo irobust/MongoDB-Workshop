@@ -1,0 +1,50 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Summarize by YEAR with $dateTrunc
+// Task: Count movies released per calendar year
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $addFields: { yearStart: { $dateTrunc: { date: "$released", unit: "year" } } } },
+  { $group: { _id: "$yearStart", titles: { $sum: 1 } } },
+  { $sort: { _id: 1 } },
+  { $limit: 15 }
+])
+
+// ---------------------------------------------
+// Example 2: Summarize by MONTH for a specific year
+// Task: Count monthly releases for 2010 using $dateTrunc
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: {
+      released: {
+        $gte: ISODate("2010-01-01"),
+        $lt:  ISODate("2011-01-01")
+      }
+  }},
+  { $addFields: { monthStart: { $dateTrunc: { date: "$released", unit: "month" } } } },
+  { $group: { _id: "$monthStart", titles: { $sum: 1 } } },
+  { $sort: { _id: 1 } }
+])
+
+// ---------------------------------------------
+// Example 3: Summarize by DECADE (10-year buckets)
+// Task: Count releases per decade (e.g., 1970, 1980, 1990)
+// Note: $dateTrunc has no "decade" unit, so derive decade start year
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $addFields: {
+      releaseYear: { $year: "$released" },
+      decadeStartYear: {
+        $multiply: [
+          { $floor: { $divide: [ { $year: "$released" }, 10 ] } },
+          10
+        ]
+      }
+  }},
+  { $group: { _id: "$decadeStartYear", titles: { $sum: 1 } } },
+  { $sort: { _id: 1 } }
+])

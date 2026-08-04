@@ -1,0 +1,320 @@
+
+// # Demo: Sorting Results by One or More Fields Compass
+
+// Step 1: View unsorted results
+Filter:     { "year": { "$gte": 1990 } }
+Project:    { "title": 1, "year": 1 }
+Sort:       (leave blank)
+
+// Step 2: Sort by year ascending
+Filter:     { "year": { "$gte": 1990 } }
+Project:    { "title": 1, "year": 1 }
+Sort:       { "year": 1 }
+
+// Step 3: Sort by year descending
+Filter:     { "year": { "$gte": 1990 } }
+Project:    { "title": 1, "year": 1 }
+Sort:       { "year": -1 }
+
+// Step 4: Sort by title ascending
+Filter:     { "year": { "$gte": 1990 } }
+Project:    { "title": 1, "year": 1 }
+Sort:       { "title": 1 }
+
+// Step 5: Sort by year descending, then title ascending
+Filter:     { "year": { "$gte": 1990 } }
+Project:    { "title": 1, "year": 1 }
+Sort:       { "year": -1, "title": 1 }
+
+// Clip 1: Sorting Results by One or More Fields in Shell
+
+use sample_mflix
+
+// Step 1: View unsorted results
+db.movies.find(
+  { year: { $gte: 1990 } },
+  { title: 1, year: 1 }
+)
+
+// Step 2: Sort by year ascending
+db.movies.find(
+  { year: { $gte: 1990 } },
+  { title: 1, year: 1 }
+).sort({ year: 1 })
+
+// Step 3: Sort by year descending
+db.movies.find(
+  { year: { $gte: 1990 } },
+  { title: 1, year: 1 }
+).sort({ year: -1 })
+
+// Step 4: Sort by title ascending
+db.movies.find(
+  { year: { $gte: 1990 } },
+  { title: 1, year: 1 }
+).sort({ title: 1 })
+
+// Step 5: Sort by year descending, then title ascending
+db.movies.find(
+  { year: { $gte: 1990 } },
+  { title: 1, year: 1 }
+).sort({ year: -1, title: 1 })
+
+//////////////////////////////////////////////////////////////////////////////
+
+// # Demo: Sorting by Numeric, Date, and String Fields – Compass
+
+// Step 1: Sort by runtime (numeric field)
+Filter:     { "year": { "$gte": 2007 } }
+Project:    { "title": 1, "runtime": 1 }
+Sort:       { "runtime": 1 }
+
+// Step 2: Sort by runtime (numeric field) desc
+Filter:     { "year": { "$gte": 2007 } }
+Project:    { "title": 1, "runtime": 1 }
+Sort:       { "runtime": -1 }
+
+// Step 3: Sort only when runtime exists (runtime field is present and valid)
+Filter:     { "year": { "$gte": 2007 }, "runtime": { "$exists": true } }
+Project:    { "title": 1, "runtime": 1 }
+Sort:       { "runtime": 1 }
+
+// Step 4: Sort titles using numeric-aware collation (impacts titles like "Movie 2" vs "Movie 10")
+Filter:     { "title": { "$exists": true } }
+Project:    { "title": 1 }
+Sort:       { "title": 1 }
+Collation:  { locale: "en", numericOrdering: true}
+
+// Step 5: Sort by nested subdocument field (awards.wins)
+Filter:     { "year": { "$gte": 2007 }, 
+		"awards.wins": { "$exists": true } }
+Project:    { "title": 1, "awards.wins": 1 }
+Sort:       { "awards.wins": -1 }
+
+// Step 6: Sort movies by second language listed in the 'languages' array
+(Use Aggregation Tab)
+[
+  {
+    "$match": {
+      "year": { "$gte": 2007 },
+      "languages.1": { $exists: true } 
+    }
+  },
+  {
+    "$addFields": {
+      "second_lang": { "$arrayElemAt": ["$languages", 1] }
+    }
+  },
+  {
+    "$sort": { "second_lang": -1 }
+  },
+  {
+    "$project": {
+      "title": 1,
+      "languages": 1,
+      "second_lang": 1
+    }
+  }
+]
+
+
+// Natural Language Query
+✅ Version 1 (Base):
+Find movies released in 2007 or later, extract their second language, and sort by that second language.
+
+✅ Version 2 (Builds on Version 1):
+Find movies released in 2007 or later, extract their second language, and sort by that second language. Then, show only the title and second language, and hide the _id field.
+
+✅ Version 3 (Builds on Version 2):
+Find movies released in 2007 or later, extract their second language, and sort by that second language. Then, show only the title and second language, and hide the _id field. Only include movies where a second language exists.
+
+// # Demo: Sorting by Numeric, Date, and String Fields - Shell
+
+use sample_mflix
+
+// Step 1: Sort by runtime (numeric field)
+db.movies.find(
+  { year: { $gte: 2007 } },
+  { title: 1, runtime: 1 }
+).sort({ runtime: 1 })
+
+// Step 2: Sort by runtime (numeric field) descending
+db.movies.find(
+  { year: { $gte: 2007 } },
+  { title: 1, runtime: 1 }
+).sort({ runtime: -1 })
+
+// Step 3: Sort only when runtime exists (field is present and valid)
+db.movies.find(
+  { year: { $gte: 2007 }, runtime: { $exists: true } },
+  { title: 1, runtime: 1 }
+).sort({ runtime: 1 })
+
+// Step 4: Sort titles using numeric-aware collation
+// Helps correctly order titles like "Movie 2" before "Movie 10"
+db.movies.find(
+  { title: { $exists: true } },
+  { title: 1 }
+).sort({ title: 1 }).collation({ locale: "en", numericOrdering: true })
+
+// Step 5: Sort by nested subdocument field (awards.wins)
+db.movies.find(
+  { year: { $gte: 2007 }, "awards.wins": { $exists: true } },
+  { title: 1, "awards.wins": 1 }
+).sort({ "awards.wins": -1 })
+
+// Step 6: Sort movies by second language listed in the 'languages' array
+// Uses aggregation pipeline to extract second language and sort
+db.movies.aggregate([
+  {
+    $match: {
+      year: { $gte: 2007 },
+      "languages.1": { $exists: true }
+    }
+  },
+  {
+    $addFields: {
+      second_lang: { $arrayElemAt: ["$languages", 1] }
+    }
+  },
+  {
+    $sort: { second_lang: -1 }
+  },
+  {
+    $project: {
+      title: 1,
+      languages: 1,
+      second_lang: 1
+    }
+  }
+])
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+// # Demo: Limiting and Skipping Results for Pagination – Compass
+
+// Step 1: View Page 3 – skip first 10, show next 5 
+Filter:     {}
+Project:    { "title": 1, "_id": 0 }
+Sort:       { "title": 1 }
+Limit:      5
+Skip:       5
+
+// Step 2: Filtered pagination – only Action genre, page 1
+Filter:     { "genres": "Action" }
+Project:    { "title": 1, "genres": 1, "_id": 0 }
+Sort:       { "title": 1 }
+Limit:      5
+Skip:       (leave blank)
+
+// Step 3: Filtered pagination – Action genre, page 2
+Filter:     { "genres": "Action" }
+Project:    { "title": 1, "genres": 1, "_id": 0 }
+Sort:       { "title": 1 }
+Limit:      5
+Skip:       5
+
+// Step 4: Valid descending sort – returns 3 titles in reverse order
+Filter:     {}
+Project:    { "title": 1, "_id": 0 }
+Sort:       { "title": -1 }
+Limit:      3
+Skip:       (leave blank)
+
+// Step 5: Invalid use of negative limit – will be accepted in Compass UI, but should be avoided
+Filter:     {}
+Project:    { "title": 1, "_id": 0 }
+Sort:        { "title": -1 }
+Limit:      -3     // ⚠️ Avoid this – Compass may accept, but it's not good practice
+Skip:       (leave blank)
+
+// Step 6: Invalid skip – Compass UI will show error
+Filter:     {}
+Project:    { "title": 1, "_id": 0 }
+Sort:       (leave blank)
+Limit:      (leave blank)
+Skip:       -3     // ❌ Error: must be non-negative
+
+
+// # Demo: Limiting and Skipping Results for Pagination - Shell
+
+use sample_mflix
+
+// Step 1: View Page 3 – skip first 10, show next 5
+db.movies.find(
+  {},
+  { title: 1, _id: 0 }
+).sort({ title: 1 }).skip(5).limit(5)
+
+
+// Step 2: Filtered pagination – only Action genre, page 1
+db.movies.find(
+  { genres: "Action" },
+  { title: 1, genres: 1, _id: 0 }
+).sort({ title: 1 }).limit(5)
+
+
+// Step 3: Filtered pagination – Action genre, page 2
+db.movies.find(
+  { genres: "Action" },
+  { title: 1, genres: 1, _id: 0 }
+).sort({ title: 1 }).skip(5).limit(5)
+
+
+// Step 4: Valid descending sort – returns 3 titles in reverse order
+db.movies.find(
+  {},
+  { title: 1, _id: 0 }
+).sort({ title: -1 }).limit(3)
+
+
+// Step 5: Invalid use of negative limit – not recommended
+// ⚠️ Works in shell but should be avoided due to legacy behavior
+db.movies.find(
+  {},
+  { title: 1, _id: 0 }
+).sort({ title: -1 }).limit(-3)
+
+
+// Step 6: Invalid skip – will throw an error
+// ❌ This will fail: skip must be a non-negative integer
+db.movies.find(
+  {},
+  { title: 1, _id: 0 }
+).skip(-3)
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+// # Demo: Combining Filters, Sort, and Limit in One Query - Compass
+
+
+// Step 1: Action movies after 2007, top 5 by most recent year
+Filter:     { "genres": "Action", "year": { "$gte": 2007 } }
+Project:    { "title": 1, "year": 1, "genres": 1, _id: 0 }
+Sort:       { "year": -1 }
+Limit:      10
+Skip:       5
+
+// Clip 4: Demo: Combining Filters, Sort, and Limit in One Query - Shell
+
+use sample_mflix
+
+// Step 1: Action movies after 2007, top 5 by most recent year
+db.movies.find(
+  { genres: "Action", year: { $gte: 2007 } },
+  { title: 1, year: 1, genres: 1, _id: 0 }
+).sort({ year: -1 }).skip(5).limit(10)
+
+
+// Natural Language Query
+SELECT title, year, genres
+FROM movies
+WHERE genres = 'Action' AND year >= 2007
+ORDER BY year DESC
+OFFSET 5
+FETCH NEXT 10 ROWS ONLY;
+
+"Find Action movies released in 2007 or later. Sort them by year in descending order. Skip the first 5 results and return the next 10. Only show the title, year, and genres for each movie."

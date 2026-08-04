@@ -1,0 +1,55 @@
+[
+  {
+    "name": "MacBook Pro 16-inch",
+    "price": 2499.99,
+    "currency": "USD",
+    "category": ["electronics","computers","laptops"],
+    "specifications": {
+      "processor": "Apple M2 Pro",
+      "memory": "16GB",
+      "display": "16-inch Liquid Retina XDR"
+    },
+    "reviews": [
+      {
+        "rating": 5,
+        "comment": "Incredible performance and battery life",
+        "reviewer": "Alex M."
+      }
+    ]
+  },
+  {
+    "name": "Dell XPS 15",
+    "price": 1899.99,
+    "currency": "USD",
+    "category": ["electronics","computers","laptops"],
+    "specifications": {
+      "processor": "Intel Core i9-13900H",
+      "memory": "32GB",
+      "display": "15.6-inch 4K OLED"
+    },
+    "reviews": [
+      {
+        "rating": 4,
+        "reviewer": "Jamie T."
+      }
+    ]
+  },
+  {
+    "name": "Lenovo ThinkPad X1 Carbon",
+    "price": 1599.99,
+    "currency": "USD",
+    "category": ["electronics","computers","laptops"],
+    "specifications": {
+      "processor": "Intel Core i7-13700U",
+      "memory": "16GB",
+      "display": "14-inch WUXGA IPS"
+    },
+    "reviews": [
+      {
+        "rating": 4.5,
+        "comment": "Excellent keyboard and build quality. Perfect for business use.",
+        "reviewer": "Sam K."
+      }
+    ]
+  }
+]

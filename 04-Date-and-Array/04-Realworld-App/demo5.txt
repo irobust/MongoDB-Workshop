@@ -1,0 +1,59 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Compact movie export
+// Task: Format date and join arrays for spreadsheets
+// ---------------------------------------------
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      title: 1,
+      releaseDate: {
+        $cond: [
+          { $eq: [ { $type: "$released" }, "date" ] },
+          { $dateToString: { date: "$released", format: "%Y-%m-%d" } },
+          null
+        ]
+      },
+      genresCsv: {
+        $reduce: {
+          input: { $ifNull: ["$genres", []] },
+          initialValue: "",
+          in: { $concat: [
+            { $cond: [ { $eq: ["$$value", ""] }, "", { $concat: ["$$value", ", "] } ] },
+            "$$this"
+          ] }
+        }
+      }
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Compact comments export with movie info
+// Task: Format comment time and flatten genres
+// ---------------------------------------------
+db.comments.aggregate([
+  { $lookup: { from: "movies", localField: "movie_id", foreignField: "_id", as: "m" } },
+  { $unwind: "$m" },
+  { $project: {
+      _id: 0,
+      commentTime: { $dateToString: { date: "$date", format: "%Y-%m-%d %H:%M" } },
+      commenter: "$name",
+      movieTitle: "$m.title",
+      genresCsv: {
+        $reduce: {
+          input: { $ifNull: ["$m.genres", []] },
+          initialValue: "",
+          in: { $concat: [
+            { $cond: [ { $eq: ["$$value", ""] }, "", { $concat: ["$$value", ", "] } ] },
+            "$$this"
+          ] }
+        }
+      },
+      textPreview: { $substrCP: [ { $ifNull: ["$text", ""] }, 0, 80 ] }
+  }},
+  { $limit: 5 }
+])

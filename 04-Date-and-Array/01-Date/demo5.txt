@@ -1,0 +1,69 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Format release date as YYYY-MM-DD
+// Task: Convert raw date into a standard string
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      releaseDate: {
+        $dateToString: { format: "%Y-%m-%d", date: "$released" }
+      }
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 2: Format release date with month name
+// Task: Show “Jan 2010” style outputs
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      releaseDate: {
+        $dateToString: { format: "%b %Y", date: "$released" }
+      }
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 3: Add time zone to formatting
+// Task: Show date in America/New_York time zone
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      title: 1,
+      releaseDateNY: {
+        $dateToString: {
+          format: "%Y-%m-%d %H:%M:%S",
+          date: "$released",
+          timezone: "America/New_York"
+        }
+      }
+  }},
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 4: Year-month keys for reporting
+// Task: Produce YYYY-MM for grouping in BI tools
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $group: {
+      _id: { ym: { $dateToString: { format: "%Y-%m", date: "$released" } } },
+      count: { $sum: 1 }
+  }},
+  { $project: { _id: 0, yearMonth: "$_id.ym", count: 1 } },
+  { $sort: { yearMonth: 1 } },
+  { $limit: 12 }
+])

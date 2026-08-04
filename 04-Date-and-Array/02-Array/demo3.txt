@@ -1,0 +1,59 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Exact length with $size
+// Task: Find movies that have exactly 3 languages
+// ---------------------------------------------
+db.movies.find(
+  { languages: { $size: 3 } },
+  { title: 1, languages: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 2: Length comparisons using $expr (safe for missing fields)
+// Task: Find movies with at least 3 cast members
+// Note: $ifNull defaults missing/non-array to []
+// ---------------------------------------------
+db.movies.find(
+  { $expr: { $gte: [ { $size: { $ifNull: ["$cast", []] } }, 3 ] } },
+  { title: 1, cast: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 3: Length range with $expr (safe for missing fields)
+// Task: Find movies with genres count between 2 and 4 inclusive
+// ---------------------------------------------
+db.movies.find(
+  { $expr: { $and: [
+      { $gte: [ { $size: { $ifNull: ["$genres", []] } }, 2 ] },
+      { $lte: [ { $size: { $ifNull: ["$genres", []] } }, 4 ] }
+  ] } },
+  { title: 1, genres: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 4: Count only non-null ratings in-pipeline
+// Task: Combine imdb.rating and tomatoes.viewer.rating, keep defined values,
+//       then keep movies where at least 1 rating exists
+// ---------------------------------------------
+db.movies.aggregate([
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      ratings: {
+        $filter: {
+          input: [ "$imdb.rating", "$tomatoes.viewer.rating" ],
+          as: "r",
+          cond: { $and: [ { $ne: ["$$r", null] }, { $ne: ["$$r", NaN] } ] }
+        }
+      }
+    }
+  },
+  { $match: { $expr: { $gte: [ { $size: "$ratings" }, 1 ] } } },
+  { $limit: 5 }
+])

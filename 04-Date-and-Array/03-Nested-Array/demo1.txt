@@ -1,0 +1,67 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Filter on nested awards field
+// Task: Find movies with more than 5 award wins
+// ---------------------------------------------
+
+db.movies.find(
+  { "awards.wins": { $gt: 5 } },
+  { title: 1, "awards.wins": 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 2: Match by nested viewer rating
+// Task: Find movies where viewer rating >= 4
+// ---------------------------------------------
+
+db.movies.find(
+  { "tomatoes.viewer.rating": { $gte: 4 } },
+  { title: 1, "tomatoes.viewer.rating": 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 3: Combine conditions across nested paths
+// Task: Movies with critic rating >= 3 AND viewer rating >= 4
+// ---------------------------------------------
+
+db.movies.find(
+  {
+    "tomatoes.critic.rating": { $gte: 3 },
+    "tomatoes.viewer.rating": { $gte: 4 }
+  },
+  {
+    title: 1,
+    "tomatoes.critic.rating": 1,
+    "tomatoes.viewer.rating": 1,
+    _id: 0
+  }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 4: Nested arrays with dot notation
+// Task: Find movies where first cast member is "Tom Hanks"
+// ---------------------------------------------
+
+db.movies.find(
+  { "cast.0": "Tom Hanks" },
+  { title: 1, cast: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 5: Dot notation into sub-doc + array logic together
+// Task: High viewer rating (>= 4.3) and at least 3 cast members
+// ---------------------------------------------
+
+db.movies.find(
+  {
+    "tomatoes.viewer.rating": { $gte: 4.3 },
+    $expr: { $gte: [ { $size: "$cast" }, 3 ] }
+  },
+  { title: 1, cast: { $slice: ["$cast", 3] }, "tomatoes.viewer.rating": 1, _id: 0 }
+).limit(5)

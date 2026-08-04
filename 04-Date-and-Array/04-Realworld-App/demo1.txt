@@ -1,0 +1,68 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Date range + user attribute (email domain)
+// Task: Comments from 2014-01-01 to 2015-12-31 by users with gmail.com
+// ---------------------------------------------
+
+db.comments.aggregate([
+  { $match: {
+      date: { $gte: ISODate("2014-01-01"), $lt: ISODate("2016-01-01") }
+  }},
+  { $lookup: {
+      from: "users",
+      localField: "email",
+      foreignField: "email",
+      as: "user"
+  }},
+  { $unwind: "$user" },
+  { $match: { "user.email": /gmail\.com$/i } },
+  { $project: {
+      _id: 0,
+      date: 1,
+      commenter: "$name",
+      email: "$user.email",
+      text: 1
+  }},
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Date range + computed “VIP” tag (frequent commenters)
+// Task: In 2015, keep comments from users with ≥ 20 total comments overall
+// ---------------------------------------------
+
+db.comments.aggregate([
+  // Filter by the activity window first
+  { $match: {
+      date: { $gte: ISODate("2015-01-01"), $lt: ISODate("2016-01-01") }
+  }},
+
+  // Compute each commenter’s lifetime comment count on the fly
+  { $lookup: {
+      from: "comments",
+      let: { me: "$email" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$email", "$$me"] } } },
+        { $count: "n" }
+      ],
+      as: "counts"
+  }},
+  { $addFields: { totalComments: { $ifNull: [ { $arrayElemAt: ["$counts.n", 0] }, 0 ] } } },
+
+  // Keep only “VIPs”
+  { $match: { totalComments: { $gte: 20 } } },
+
+   { $project: {
+      _id: 0,
+      date: 1,
+      commenter: { $ifNull: ["$user.name", "$name"] },
+      email: 1,
+      totalComments: 1,
+      text: 1
+  }},
+  { $limit: 5 }
+])
+

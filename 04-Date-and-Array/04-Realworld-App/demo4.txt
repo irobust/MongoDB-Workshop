@@ -1,0 +1,58 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: One row per cast member with ratings
+// Task: Flatten movies so each row is {title, year, actor, viewerScore, criticScore}
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { cast: { $type: "array", $ne: [] } } },
+  { $unwind: "$cast" },
+  { $project: {
+      _id: 0,
+      title: 1,
+      year: 1,
+      actor: "$cast",
+      viewerScore: "$tomatoes.viewer.rating",
+      criticScore: "$tomatoes.critic.rating"
+  }},
+  { $limit: 10 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Flat report of comments joined to movie info
+// Task: For each comment output {date, commenter, email, movieTitle, year, genresCsv}
+// ---------------------------------------------
+
+db.comments.aggregate([
+  { $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie"
+  }},
+  { $unwind: "$movie" },
+  { $project: {
+      _id: 0,
+      date: { $dateToString: { date: "$date", format: "%Y-%m-%d" } },
+      commenter: "$name",
+      email: "$email",
+      movieTitle: "$movie.title",
+      year: "$movie.year",
+      genresCsv: {
+        $reduce: {
+          input: { $ifNull: ["$movie.genres", []] },
+          initialValue: "",
+          in: {
+            $concat: [
+              { $cond: [{ $eq: ["$$value", ""] }, "", { $concat: ["$$value", ", "] }] },
+              "$$this"
+            ]
+          }
+        }
+      }
+  }},
+  { $limit: 10 }
+])

@@ -1,0 +1,184 @@
+// # Using Equality and Comparison Operators in find()
+
+// Find all movies released in 2010
+{ "year": 2010 }
+
+// Find all movies rated "R"
+{ "rated": "R" }
+
+// Find all movies with runtime greater than 150 minutes
+{ "runtime": { "$gt": 150 } }
+
+// Find all movies released before 1970
+{ "year": { "$lt": 1970 } }
+
+// Movies released before 1960 with runtime >= 100 mins
+{ "year": { "$lt": 1960 }, "runtime": { "$gte": 100 } }
+
+// Find all movies released between 1990 and 2000 (inclusive)
+{ "year": { "$gte": 1990, "$lte": 2000 } }
+
+// Find all movies rated PG or PG-13
+{ "rated": { "$in": ["PG", "PG-13"] } }
+
+// Find all movies not rated "R"
+{ "rated": { "$ne": "R" } }
+
+// Find all movies not in English or Spanish
+{ "languages": { "$nin": ["English", "Spanish"] } }
+
+// Find all French-language movies released in 2015
+{ "year": 2015, "languages": { "$in": ["French"] } }
+
+// Find all movies with runtime field missing
+{ "runtime": { "$exists": false } }
+
+// Find all movies where the 'plot' field exists
+{ "plot": { "$exists": true } }
+
+// Long movies (runtime > 140) from the 1990s
+{ "year": { "$gte": 1990, "$lte": 1999 }, "runtime": { "$gt": 140 } }
+
+// Long movies (runtime > 140) from the 1990s
+db.movies.find({ "year": { "$gte": 1990, "$lte": 1999 }, "runtime": { "$gt": 140 } })
+
+//////////////////////////////////////////////////////////////////////////////
+
+// # Combining Conditions with Logical Operators
+
+// Movies released in 2000 and rated PG-13
+{ "year": 2000, "rated": "PG-13" }
+
+// Explicit AND: same result as above using $and
+{ "$and": [ { "year": 2000 }, { "rated": "PG-13" } ] }
+
+// Movies rated G OR PG
+{ "$or": [ { "rated": "G" }, { "rated": "PG" } ] }
+
+// Rated PG or PG-13 AND released in or after 2000
+{
+  "$and": [
+    { "year": { "$gte": 2000 } },
+    { "$or": [ { "rated": "PG" }, { "rated": "PG-13" } ] }
+  ]
+}
+
+// Movies NOT rated "R"
+{ "rated": { "$not": { "$eq": "R" } } }
+
+// Movies where runtime is NOT greater than 90 minutes
+{ "runtime": { "$not": { "$gt": 90 } } }
+
+// Movies released before 1970 OR runtime over 150 minutes
+{
+  "$or": [
+    { "year": { "$lt": 1970 } },
+    { "runtime": { "$gt": 150 } }
+  ]
+}
+
+
+// Movies NEITHER rated "R" NOR released after 2010
+{
+  "$nor": [
+    { "rated": "R" },
+    { "year": { "$gt": 2010 } }
+  ]
+}
+
+// Movies missing either runtime or plot fields
+{
+  "$or": [
+    { "runtime": { "$exists": false } },
+    { "plot": { "$exists": false } }
+  ]
+}
+
+// Movies with "Star" or "Galaxy" in the title
+{
+  "$or": [
+    { "title": { "$regex": "Star", "$options": "i" } },
+    { "title": { "$regex": "Galaxy", "$options": "i" } }
+  ]
+}
+
+
+// Movies with "Star" or "Galaxy" in the title (regex + $or)
+db.movies.find({
+  $or: [
+    { title: { $regex: "Star", $options: "i" } },
+    { title: { $regex: "Galaxy", $options: "i" } }
+  ]
+})
+
+//////////////////////////////////////////////////////////////////////////////
+
+// # Filtering on Nested Fields and Array Values
+
+// Movies with 5 or more award wins (nested number)
+{ "awards.wins": { "$gte": 5 } }
+
+// Movies where viewer rating is at least 3
+{ "tomatoes.viewer.rating": { "$gte": 3 } }
+
+// Movies available in English (simple value in array)
+{ "languages": "English" }
+
+// Movies with genres that include Action or Thriller
+{ "genres": { "$in": ["Action", "Thriller"] } }
+
+// Check if a nested field exists
+{ "awards.wins": { "$exists": true } }
+
+// # Troubleshooting Filters That Return Unexpected Results
+
+// ❌ Case-sensitive mismatch — no results
+{ "rated": "pg-13" }
+
+// ✔ Corrected casing
+{ "rated": "PG-13" }
+
+// ❌ Typo in field name — silently fails
+{ "ratd": "PG-13" }
+
+// ✔ Fixed field name
+{ "rated": "PG-13" }
+
+// ❌ Wrong data type — "2000" is a string, not a number
+{ "year": "2000" }
+
+// ✔ Correct type (number)
+{ "year": 2000 }
+
+// ❌ Invalid $in — must be an array
+{ "year": { "$in": 2000 } }
+
+// ✔ Corrected $in usage
+{ "year": { "$in": [2000] } }
+
+// ❌ Incorrect $not usage — must wrap an operator
+{ "rated": { "$not": "R" } }
+
+// ✔ Corrected $not usage
+{ "rated": { "$not": { "$eq": "R" } } }
+
+// ❌ Exact match fails for partial or lowercase title
+{ "title": "godfather" }
+
+// ✔ Regex for case-insensitive partial match
+{ "title": { "$regex": "godfather", "$options": "i" } }
+
+// Natural language: “Find movies rated PG-13”
+{ "rated": "PG-13" }
+
+// Natural language: “Show movies longer than 2 hours”
+{ "runtime": { "$gt": 120 } }
+
+// Natural language: “List movies from 1990s in English”
+{
+  "$and": [
+    { "year": { "$gte": 1990, "$lt": 2000 } },
+    { "languages": "English" }
+  ]
+}
+

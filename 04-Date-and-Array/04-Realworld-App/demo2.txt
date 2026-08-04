@@ -1,0 +1,67 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Top-N actors within each genre (window functions)
+// Task: For each genre, list the top 5 most frequent actors
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { cast: { $type: "array" }, genres: { $type: "array" } } },
+  { $unwind: "$genres" },
+  { $unwind: "$cast" },
+  { $group: { _id: { genre: "$genres", actor: "$cast" }, appearances: { $sum: 1 } } },
+  { $group: {
+      _id: "$_id.genre",
+      topActors: {
+        $topN: {
+          n: 5,
+          sortBy: { appearances: -1 },
+          output: { actor: "$_id.actor", appearances: "$appearances" }
+        }
+      }
+  }},
+  { $project: { _id: 0, genre: "$_id", topActors: 1 } },
+  { $sort: { genre: 1 } }
+])
+
+
+/ ---------------------------------------------
+// Example 2: Genre Exclusivity Index
+// Task: For each genre, count solo vs mixed appearances and compute exclusivity
+//       exclusivity = soloAppearances / totalAppearances
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { genres: { $type: "array", $ne: [] } } },
+
+  // De-dup genres per movie and capture how many genres the movie has
+  { $project: {
+      genresSet: { $setUnion: ["$genres", []] },
+      gcount:    { $size: { $setUnion: ["$genres", []] } }
+  }},
+
+  // One row per (genre, movie), carrying the movie's genre-count
+  { $unwind: "$genresSet" },
+
+  // Summarize per genre
+  { $group: {
+      _id: "$genresSet",
+      movies: { $sum: 1 },
+      solo:   { $sum: { $cond: [ { $eq: ["$gcount", 1] }, 1, 0 ] } },
+      mixed:  { $sum: { $cond: [ { $gt: ["$gcount", 1] }, 1, 0 ] } }
+  }},
+
+  // Tidy for reporting
+  { $project: {
+      _id: 0,
+      genre: "$_id",
+      movies: 1,
+      solo: 1,
+      mixed: 1,
+      exclusivity: { $round: [ { $divide: ["$solo", "$movies"] }, 2 ] }
+  }},
+
+  { $sort: { exclusivity: -1, movies: -1, genre: 1 } },
+  { $limit: 15 }
+])

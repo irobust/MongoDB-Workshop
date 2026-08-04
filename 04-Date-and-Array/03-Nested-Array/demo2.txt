@@ -1,0 +1,86 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Flatten a nested address
+// Task: Show theater name and its city as top-level field
+// ---------------------------------------------
+
+db.theaters.find(
+  {},
+  {
+    _id: 0,
+    name: 1,
+    city: "$location.address.city"
+  }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 2: Extract multiple nested values at once
+// Task: Flatten both city and state from theater address
+// ---------------------------------------------
+
+db.theaters.find(
+  {},
+  {
+    _id: 0,
+    name: 1,
+    city: "$location.address.city",
+    state: "$location.address.state"
+  }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 3: Flatten nested array objects with movie title
+// Task: From comments, show commenter’s name and related movie title
+// ---------------------------------------------
+
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie"
+    }
+  },
+  { $unwind: "$movie" },
+  {
+    $project: {
+      _id: 0,
+      commenter: "$name",
+      movieTitle: "$movie.title"
+    }
+  },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 4: Raw vs Flattened in one row
+// Task: Show raw key/value AND flattened fields together
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $project: {
+      _id: 0,
+      title: 1,
+      tomatoes_kv: { $objectToArray: "$tomatoes" }
+  }},
+  { $unwind: "$tomatoes_kv" },
+  { $project: {
+      title: 1,
+
+      // Raw style
+      metric: "$tomatoes_kv.k",
+      rawValue: "$tomatoes_kv.v",
+
+      // Flattened style (only works if value is an object)
+      rating: "$tomatoes_kv.v.rating",
+      numReviews: "$tomatoes_kv.v.numReviews",
+      meter: "$tomatoes_kv.v.meter"
+  }},
+  { $limit: 8 }
+])

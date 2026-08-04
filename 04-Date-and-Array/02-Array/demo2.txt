@@ -1,0 +1,48 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Easiest use of $elemMatch
+// Task: Find movies where one cast entry equals "Tom Hanks"
+// ---------------------------------------------
+
+db.movies.find(
+  { cast: { $elemMatch: { $eq: "Tom Hanks" } } },
+  { title: 1, cast: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 2: Two rules on the SAME cast element
+// Task: Starts with "Tom" AND also contains an "r"
+// ---------------------------------------------
+
+db.movies.find(
+  { cast: { $elemMatch: { $regex: /^Tom.*r/i } } },
+  { title: 1, cast: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 3: Include and exclude in one element
+// Task: Cast entry starts with "Tom" but is not exactly "Tom Hanks"
+// ---------------------------------------------
+
+db.movies.find(
+  { cast: { $elemMatch: { $regex: /^Tom/i, $nin: ["Tom Hanks"] } } },
+  { title: 1, cast: 1, _id: 0 }
+).limit(5)
+
+
+// ---------------------------------------------
+// Example 4: Numeric test on an array built in-pipeline
+// Task: Count a movie if ANY rating is ≥ 8
+//        (combine imdb and tomatoes ratings into one array)
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $addFields: { ratings: ["$imdb.rating", "$tomatoes.viewer.rating"] } },
+  { $match: { ratings: { $elemMatch: { $gte: 8 } } } },
+  { $project: { _id: 0, title: 1, ratings: 1 } },
+  { $limit: 5 }
+])

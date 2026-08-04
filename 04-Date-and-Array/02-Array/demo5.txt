@@ -1,0 +1,81 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Top actors overall (dedup by movie)
+// Task: Who appears in the most titles across the catalog
+// ---------------------------------------------
+db.movies.aggregate([
+  { $unwind: "$cast" },
+  { $group: { _id: "$cast", movieIds: { $addToSet: "$_id" } } },
+  { $project: { _id: 0, actor: "$_id", movieCount: { $size: "$movieIds" } } },
+  { $sort: { movieCount: -1, actor: 1 } },
+  { $limit: 10 }
+])
+
+// ---------------------------------------------
+// Example 2: Genre share by decade
+// Task: Within each decade, what share does each genre hold
+// ---------------------------------------------
+db.movies.aggregate([
+  { $match: { released: { $type: "date" } } },
+  { $project: {
+      _id: 0,
+      genres: 1,
+      decade: { $multiply: [ { $floor: { $divide: [ { $year: "$released" }, 10 ] } }, 10 ] }
+  }},
+  { $unwind: "$genres" },
+  { $group: { _id: { decade: "$decade", genre: "$genres" }, count: { $sum: 1 } } },
+  { $group: {
+      _id: "$_id.decade",
+      total: { $sum: "$count" },
+      byGenre: { $push: { genre: "$_id.genre", count: "$count" } }
+  }},
+  { $unwind: "$byGenre" },
+  { $project: {
+      _id: 0,
+      decade: "$_id",
+      genre: "$byGenre.genre",
+      count: "$byGenre.count",
+      sharePct: { $round: [ { $multiply: [ { $divide: ["$byGenre.count", "$total"] }, 100 ] }, 2 ] }
+  }},
+  { $sort: { decade: 1, sharePct: -1, genre: 1 } },
+  { $limit: 40 }
+])
+
+// ---------------------------------------------
+// Example 3: Actor co-appearance pairs (who appears together often)
+// Task: Count frequent pairs from the first 5 cast positions
+// ---------------------------------------------
+db.movies.aggregate([
+  // keep only docs with a cast array
+  { $match: { cast: { $type: "array" } } },
+
+  // limit to first 5 and drop nulls
+  { $project: {
+      title: 1,
+      castLimited: {
+        $filter: {
+          input: { $slice: ["$cast", 5] },
+          as: "c",
+          cond: { $ne: ["$$c", null] }
+        }
+      }
+  }},
+
+  // duplicate the array so we can unwind twice independently
+  { $project: { title: 1, castA: "$castLimited", castB: "$castLimited" } },
+
+  // generate all index-ordered pairs (i < j)
+  { $unwind: { path: "$castA", includeArrayIndex: "i" } },
+  { $unwind: { path: "$castB", includeArrayIndex: "j" } },
+  { $match: { $expr: { $lt: ["$i", "$j"] } } },
+
+  // count how often each pair appears together across movies
+  { $group: { _id: { a1: "$castA", a2: "$castB" }, together: { $sum: 1 } } },
+
+  // show the most frequent pairs
+  { $sort: { together: -1, "_id.a1": 1, "_id.a2": 1 } },
+  { $limit: 15 },
+  { $project: { _id: 0, actor1: "$_id.a1", actor2: "$_id.a2", moviesTogether: "$together" } }
+])
