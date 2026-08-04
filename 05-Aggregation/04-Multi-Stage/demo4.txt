@@ -1,0 +1,14 @@
+// Switch to the correct database
+sample_mflix
+
+
+// ---------------------------------------------
+// Step 1: Natural Language Request
+// User asks: "Show me the top genres by average IMDb rating"
+// ---------------------------------------------
+
+// ---------------------------------------------
+// Step 2: Refinement
+// User adds: "only consider movies released after 2010"
+// ---------------------------------------------
+

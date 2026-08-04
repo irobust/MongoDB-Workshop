@@ -1,0 +1,53 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Complete aggregation pipeline (Shell)
+// Task: Show how data changes after each stage
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { title: 1, year: 1, _id: 0 } },
+  { $project: { title: 1, year: 1, titleLength: { $strLenCP: "$title" } } },
+  { $group: { 
+      _id: "$year", 
+      totalMovies: { $sum: 1 },
+      avgTitleLength: { $avg: "$titleLength" }
+    } 
+  },
+  { $project: { 
+      year: "$_id", 
+      totalMovies: 1, 
+      avgTitleLength: 1, 
+      _id: 0 
+    } 
+  },
+  { $sort: { totalMovies: -1 } }
+])
+
+
+// ---------------------------------------------
+// Example 2: Complete aggregation pipeline (Compass)
+// Task: Show how data changes after each stage
+// ---------------------------------------------
+
+[
+  { "$match": { "year": { "$gt": 2010 } } },
+  { "$project": { "title": 1, "year": 1, "_id": 0 } },
+  { "$project": { "title": 1, "year": 1, "titleLength": { "$strLenCP": "$title" } } },
+  { "$group": { 
+      "_id": "$year", 
+      "totalMovies": { "$sum": 1 }, 
+      "avgTitleLength": { "$avg": "$titleLength" } 
+    } 
+  },
+  { "$project": { 
+      "year": "$_id", 
+      "totalMovies": 1, 
+      "avgTitleLength": 1, 
+      "_id": 0 
+    } 
+  },
+  { "$sort": { "totalMovies": -1 } }
+]

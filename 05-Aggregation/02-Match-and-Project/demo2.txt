@@ -1,0 +1,60 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Include specific fields
+// Task: Show only title and year for movies after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $limit: 5 }
+])
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { title: 1, year: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { plot: 0, fullplot: 0, "tomatoes.consensus": 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Slice array values
+// Task: Show title and the first 2 genres using $slice
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { 
+      title: 1,
+      year: 1,
+      genres: { $slice: ["$genres", 2] },
+      _id: 0
+    }
+  },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Add a computed field
+// Task: Create a shortTitle field that uppercases the title
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { 
+      title: 1,
+      year: 1,
+      shortTitle: { $toUpper: "$title" },
+      _id: 0
+    }
+  },
+  { $limit: 5 }
+])

@@ -1,0 +1,55 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Filter by genre
+// Task: Show Action movies released after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { 
+      year: { $gt: 2010 },
+      genres: { $in: ["Action"] }
+    }
+  },
+  { $project: { title: 1, year: 1, genres: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Filter by rating
+// Task: Show PG-rated movies released after 2005
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { 
+      year: { $gt: 2005 },
+      rated: "PG"
+    }
+  },
+  { $project: { title: 1, year: 1, rated: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Add a computed field
+// Task: Show Drama movies since 2000 with computed title length
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { 
+      year: { $gte: 2000 },
+      genres: { $in: ["Drama"] }
+    }
+  },
+  { $project: { 
+      title: 1,
+      year: 1,
+      titleLength: { $strLenCP: "$title" },
+      _id: 0
+    }
+  },
+  { $limit: 5 }
+])

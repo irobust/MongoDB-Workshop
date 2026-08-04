@@ -1,0 +1,44 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Comedies after 2000
+// Task: Show how many comedies were released each year after 2000
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2000 }, genres: { $in: ["Comedy"] } } },
+  { $group: { _id: "$year", totalComedies: { $sum: 1 } } },
+  { $project: { year: "$_id", totalComedies: 1, _id: 0 } },
+  { $sort: { year: 1 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Long movies by genre after 2005
+// Task: Show the average runtime of movies longer than 120 minutes per genre
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2005 }, runtime: { $gte: 120 } } },
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", avgRuntime: { $avg: "$runtime" } } },
+  { $project: { genre: "$_id", avgRuntime: { $round: ["$avgRuntime", 1] }, _id: 0 } },
+  { $sort: { avgRuntime: -1 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Highly rated movies after 2010
+// Task: Show how many movies with IMDb rating >= 8 were released per year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, "imdb.rating": { $gte: 8 } } },
+  { $group: { _id: "$year", highlyRatedCount: { $sum: 1 } } },
+  { $project: { year: "$_id", highlyRatedCount: 1, _id: 0 } },
+  { $sort: { highlyRatedCount: -1 } },
+  { $limit: 5 }
+])

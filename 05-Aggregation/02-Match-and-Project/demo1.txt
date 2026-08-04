@@ -1,0 +1,54 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Basic numeric filter
+// Task: Show movies released after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { title: 1, year: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Compound filter
+// Task: Show movies between 2012 and 2018 that include "Drama" and are rated "PG-13"
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { 
+      year: { $gte: 2012, $lte: 2018 },
+      genres: { $in: ["Drama"] },
+      rated: "PG-13"
+    } 
+  },
+  { $project: { title: 1, year: 1, genres: 1, rated: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Computed filter with $expr
+// Task: Show movies with runtime at least 120 minutes
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { $expr: { $gte: ["$runtime", 120] } } },
+  { $project: { title: 1, runtime: 1, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 4: Date-based filter
+// Task: Show movies released on or after 2014-01-01
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { released: { $gte: ISODate("2014-01-01T00:00:00Z") } } },
+  { $project: { title: 1, released: 1, _id: 0 } },
+  { $limit: 5 }
+])

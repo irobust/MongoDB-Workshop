@@ -1,0 +1,33 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Group by year
+// Task: Show how many movies were released per year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } }
+])
+
+
+// ---------------------------------------------
+// Example 2: Group by genre
+// Task: Show how many movies belong to each genre
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", movieCount: { $sum: 1 } } }
+])
+
+
+// ---------------------------------------------
+// Example 3: Group by year with collected titles
+// Task: Show a sample of movie titles released each year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", titles: { $push: "$title" } } },
+  { $limit: 3 }
+])

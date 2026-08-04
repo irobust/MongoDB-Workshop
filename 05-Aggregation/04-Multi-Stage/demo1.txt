@@ -1,0 +1,60 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Simple filter
+// Task: Show movies released after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $limit: 2 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Filter + group
+// Task: Show how many movies were released per year after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } }
+])
+
+
+// ---------------------------------------------
+// Example 3: Filter + group + sort
+// Task: Show the most prolific years after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } },
+  { $sort: { totalMovies: -1 } }
+])
+
+// ---------------------------------------------
+// Example 4: Filter + group + sort + limit
+// Task: Show the most prolific years after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } },
+  { $sort: { totalMovies: -1 } },
+  { $limit: 2 }
+])
+
+
+// ---------------------------------------------
+// Example 5: Multi-level grouping
+// Task: Show comedies per year after 2010, then roll up into a total
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, genres: { $in: ["Comedy"] } } },
+  { $group: { _id: "$year", yearlyComedies: { $sum: 1 } } },
+  { $group: { _id: null, totalComedies: { $sum: "$yearlyComedies" } } },
+  { $project: { _id: 0, totalComedies: 1 } }
+])

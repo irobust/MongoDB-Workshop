@@ -1,0 +1,59 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Filter
+// Task: Select only movies released after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } }
+])
+
+
+// ---------------------------------------------
+// Example 2: Filter + reshape
+// Task: After filtering, keep only title and year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { title: 1, year: 1, _id: 0 } }
+])
+
+
+// ---------------------------------------------
+// Example 3: Group
+// Task: Count how many movies were released per year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } }
+])
+
+
+// ---------------------------------------------
+// Example 4: Group + sort
+// Task: Order years by number of movies released (descending)
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } },
+  { $sort: { movieCount: -1 } }
+])
+
+
+// ---------------------------------------------
+// Example 5: Full pipeline
+// Task: Count movies released after 2010, sort years by count,
+//       and reshape output with clean field names
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },	// Filter
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } },	// Summarize
+  { $sort: { movieCount: -1 } },	// Order
+  { $project: { year: "$_id", totalMovies: "$movieCount", _id: 0 } }	// Reshape
+])

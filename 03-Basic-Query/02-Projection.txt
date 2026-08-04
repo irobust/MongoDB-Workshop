@@ -16,7 +16,7 @@ Project:    { "title": 1 }
 Filter:     { "year": 1994 }
 Project:    { "title": 1, "year": 1 }
 
-// Clip 1: Understanding and Defining Projections in Shell
+// Understanding and Defining Projections in Shell
 
 use sample_mflix
 
@@ -63,7 +63,7 @@ Project:    { "_id": 0, "title": 1, "director": 1 }
 Filter:     { "year": 1994 }
 Project:    { "_id": 0, "title": 1, "year": 1, "runtime": 1 }
 
-// Clip 2: Suppressing the _id Field in Query Results (mongosh)
+// Suppressing the _id Field in Query Results (mongosh)
 
 // Step 1: Default—only 1994 movies, _id still appears
 db.movies.find({ year: 1994 });

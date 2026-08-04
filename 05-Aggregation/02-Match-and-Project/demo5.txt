@@ -1,0 +1,52 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Filter
+// Task: Show Drama movies released after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, genres: { $in: ["Drama"] } } },
+  { $limit: 2 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Filter + reshape
+// Task: Show Drama movies after 2010 with only title, year, and genres
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, genres: { $in: ["Drama"] } } },
+  { $project: { title: 1, year: 1, genres: 1, _id: 0 } },
+  { $limit: 2 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Filter + reshape + computed field
+// Task: Show Drama movies after 2010 with title, year, genres, and titleLength
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, genres: { $in: ["Drama"] } } },
+  { $project: { title: 1, year: 1, genres: 1, _id: 0 } },
+  { $project: { title: 1, year: 1, genres: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $limit: 2 }
+])
+
+// ---------------------------------------------
+// Example 4: Filter + reshape + computed field + filter again
+// Task: Show Drama movies after 2010 with title, year, genres, and titleLength,
+//       but only keep movies where titleLength > 20
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 }, genres: { $in: ["Drama"] } } },
+  { $project: { title: 1, year: 1, genres: 1, _id: 0 } },
+  { $project: { title: 1, year: 1, genres: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $match: { titleLength: { $gt: 20 } } },
+  { $limit: 2 }
+])
+

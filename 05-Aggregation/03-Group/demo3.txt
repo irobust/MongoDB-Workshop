@@ -1,0 +1,52 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Rename fields after grouping
+// Task: Show movies per year, renaming _id → year and movieCount → totalMovies
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } },
+  { $project: { year: "$_id", totalMovies: "$movieCount", _id: 0 } },
+  { $sort: { totalMovies: -1 } },
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 2: Round results and drop nulls
+// Task: Show average IMDb rating per genre, rounded to 1 decimal, excluding null/empty genres
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $unwind: "$genres" },
+  { $match: { genres: { $ne: null, $ne: "" } } },
+  { $group: { _id: "$genres", avgRating: { $avg: "$imdb.rating" } } },
+  { $project: { genre: "$_id", avgRating: { $round: ["$avgRating", 1] }, _id: 0 } },
+  { $sort: { avgRating: -1, genre: 1 } },
+  { $limit: 10 }
+])
+
+// ---------------------------------------------
+// Example 3: Create a readable label
+// Task: For each year, show a label like "2016 — 120 movies"
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", movieCount: { $sum: 1 } } },
+  { $project: { _id: 0, label: { $concat: [{ $toString: "$_id" }, " — ", { $toString: "$movieCount" }, " movies"] } } },
+  { $sort: { label: 1 } },
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 4: Show a compact sample
+// Task: For each year, show totalMovies and the first 3 titles
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", titles: { $push: "$title" }, totalMovies: { $sum: 1 } } },
+  { $project: { year: "$_id", totalMovies: 1, sampleTitles: { $slice: ["$titles", 3] }, _id: 0 } },
+  { $sort: { totalMovies: -1 } },
+  { $limit: 5 }
+])

@@ -1,0 +1,49 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Longest runtime by genre
+// Task: Show genres with the highest average runtime for movies after 2010
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", avgRuntime: { $avg: "$runtime" } } },
+  { $project: { genre: "$_id", avgRuntime: { $round: ["$avgRuntime", 1] }, _id: 0 } },
+  { $sort: { avgRuntime: -1 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Top actors in highly rated dramas
+// Task: Show the top 5 actors in drama movies after 2000 with IMDb rating >= 7
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $match: { 
+      year: { $gt: 2000 },
+      genres: { $in: ["Drama"] },
+      "imdb.rating": { $gte: 7 }
+    }
+  },
+  { $unwind: "$cast" },
+  { $group: {
+      _id: "$cast",
+      appearances: { $sum: 1 },
+      avgRating: { $avg: "$imdb.rating" },
+      movies: { $push: "$title" }
+    }
+  },
+  { $sort: { appearances: -1, avgRating: -1 } },
+  { $limit: 5 },
+  { $project: {
+      actor: "$_id",
+      appearances: 1,
+      avgRating: { $round: ["$avgRating", 1] },
+      sampleMovies: { $slice: ["$movies", 3] },
+      _id: 0
+    }
+  }
+])

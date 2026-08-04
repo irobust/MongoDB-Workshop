@@ -1,0 +1,45 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Use $sum
+// Task: Show how many movies were released per year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Use $avg
+// Task: Show the average IMDb rating per genre
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", avgRating: { $avg: "$imdb.rating" } } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Use $min and $max
+// Task: Show the shortest and longest runtime per year
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", shortestRuntime: { $min: "$runtime" }, longestRuntime: { $max: "$runtime" } } },
+  { $limit: 5 }
+])
+
+// ---------------------------------------------
+// Example 4: Use $count inside $group
+// Task: Show how many movies exist per rating category (G, PG, R, etc.)
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$rated", movieCount: { $count: {} } } },
+  { $limit: 5 }
+])

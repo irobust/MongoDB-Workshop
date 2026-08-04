@@ -1,0 +1,40 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Descending sort
+// Task: Show how many movies were released per year, sorted by most prolific years first
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } },
+  { $project: { year: "$_id", totalMovies: 1, _id: 0 } },
+  { $sort: { totalMovies: -1 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Ascending sort
+// Task: Show how many movies were released per year, sorted by least prolific years first
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $group: { _id: "$year", totalMovies: { $sum: 1 } } },
+  { $project: { year: "$_id", totalMovies: 1, _id: 0 } },
+  { $sort: { totalMovies: 1 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 3: Multi-field sort
+// Task: List unique year and genre pairs, sorted by year ascending and genre descending
+// ---------------------------------------------
+
+db.movies.aggregate([
+  { $unwind: "$genres" },
+  { $group: { _id: { year: "$year", genre: "$genres" } } },
+  { $project: { year: "$_id.year", genre: "$_id.genre", _id: 0 } },
+  { $sort: { year: 1, genre: -1 } }
+])

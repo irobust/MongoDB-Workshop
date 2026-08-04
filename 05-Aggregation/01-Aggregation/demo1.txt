@@ -1,0 +1,68 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Simple comparison
+// Task: Same output via find() and aggregate()
+// ---------------------------------------------
+
+// A) find(): compute titleLength in projection
+db.movies.find(
+  { year: { $gt: 2010 } },
+  { title: 1, year: 1, titleLength: { $strLenCP: "$title" }, _id: 0 }
+).limit(5)
+
+// B) aggregate(): same filter and computed field
+db.movies.aggregate([
+  { $match: { year: { $gt: 2010 } } },
+  { $project: { title: 1, year: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $limit: 5 }
+])
+
+
+// ---------------------------------------------
+// Example 2: Where aggregation is cleaner
+// Task: Keep movies with title length > 20 and return title + titleLength
+// ---------------------------------------------
+
+// A) find(): expression duplicated in both $expr filter and projection
+db.movies.find(
+  { $expr: { $gt: [ { $strLenCP: "$title" }, 20 ] } },
+  { title: 1, titleLength: { $strLenCP: "$title" }, _id: 0 }
+).limit(5)
+
+// B) aggregate: compute once, then filter and format
+db.movies.aggregate([
+  { $project: { title: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $match: { titleLength: { $gt: 20 } } },
+  { $limit: 5 }
+])
+
+// ⚠️ Pitfall: matching before computing the field
+db.movies.aggregate([
+  { $match: { titleLength: { $gt: 20 } } },
+  { $project: { title: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $limit: 5 }
+])
+// ⚠️ This does not throw an error, but it returns an empty set
+// because titleLength is not defined at the $match stage.
+
+
+// ---------------------------------------------
+// Example 3: Sort by a computed field
+// Task: Demonstrate what works in aggregate but fails in find()
+// ---------------------------------------------
+
+// ❌ find(): cannot sort by computed field
+db.movies.find(
+  {},
+  { title: 1, titleLength: { $strLenCP: "$title" }, _id: 0 }
+).sort({ $strLenCP: { $title: -1 } }).limit(5)
+// ❌ Error: find() cannot sort on computed expressions
+
+// ✅ aggregate: compute, then sort by the computed field
+db.movies.aggregate([
+  { $project: { title: 1, titleLength: { $strLenCP: "$title" }, _id: 0 } },
+  { $sort: { titleLength: -1 } },
+  { $limit: 5 }
+])

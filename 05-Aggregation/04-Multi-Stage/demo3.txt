@@ -1,0 +1,46 @@
+// Switch to the correct database
+use sample_mflix
+
+// ---------------------------------------------
+// Example 1: Save a pipeline in a variable
+// Task: Show the top 5 genres ranked by average IMDb rating
+// ---------------------------------------------
+
+const topGenresPipeline = [
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", avgRating: { $avg: "$imdb.rating" } } },
+  { $project: { genre: "$_id", avgRating: { $round: ["$avgRating", 1] }, _id: 0 } },
+  { $sort: { avgRating: -1 } },
+  { $limit: 5 }
+]
+
+// Reuse the pipeline
+db.movies.aggregate(topGenresPipeline)
+
+
+// ---------------------------------------------
+// Example 2: Reuse with modification
+// Task: Show the top 5 genres by average IMDb rating for movies after 2010
+// ---------------------------------------------
+
+const recentTopGenresPipeline = [
+  { $match: { year: { $gt: 2010 } } },  // added filter
+  ...topGenresPipeline                  // reuse earlier pipeline
+]
+
+db.movies.aggregate(recentTopGenresPipeline)
+
+
+// ---------------------------------------------
+// Example 3: Create a reusable view
+// Task: Save the pipeline as a view for ongoing queries
+// ---------------------------------------------
+
+db.createView(
+  "TopGenresView",   // name of the view
+  "movies",          // source collection
+  topGenresPipeline  // pipeline definition
+)
+
+// Query the view like a normal collection
+db.TopGenresView.find()
