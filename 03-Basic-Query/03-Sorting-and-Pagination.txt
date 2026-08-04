@@ -298,7 +298,7 @@ Sort:       { "year": -1 }
 Limit:      10
 Skip:       5
 
-// Clip 4: Demo: Combining Filters, Sort, and Limit in One Query - Shell
+//  Demo: Combining Filters, Sort, and Limit in One Query - Shell
 
 use sample_mflix
 
