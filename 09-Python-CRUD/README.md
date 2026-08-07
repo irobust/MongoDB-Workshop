@@ -8,7 +8,14 @@ Exactly the same workshop using **PyMongo**.
 pip install pymongo python-dotenv
 ```
 
-## 2. Connect to MongoDB
+## 2. Create .env
+
+```env
+MONGO_URI="mongodb://localhost:27017/training"
+MONGODB="training"
+```
+
+## 3. Connect to MongoDB
 
 ```python
 import os
@@ -18,15 +25,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_USER = os.getenv("MONGO_USER")
-MONGO_PASS = os.getenv("MONGO_PASS")
-MONGO_HOST = os.getenv("MONGO_HOST")
-MONGO_DB = os.getenv("MONGO_DB")
-
-uri = f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/{MONGO_DB}?retryWrites=true&w=majority"
+MONGODB_URI = os.getenv("MONGODB_URI")
 
 def main():
-    client = MongoClient(uri)
+    client = MongoClient(MONGODB_URI)
     
     try:
         client.server_info()

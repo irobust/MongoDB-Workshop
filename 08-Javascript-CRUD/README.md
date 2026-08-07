@@ -29,17 +29,15 @@ docker ps
 ## Step 2 - Install Dependencies
 
 ```bash
-npm install mongodb dotenv
+cd 08-Javascript-CRUD
+npm install
 ```
 
 ---
 
 ## Step 3 - Create env file
 ```env
-MONGO_USER=XXXX
-MONGO_PASS=XXXX
-MONGO_HOST=cluster0.example.mongodb.net
-MONGO_DB=XXXX
+MONGO_URI="mongodb://localhost:27017/training"
 ```
 ---
 
